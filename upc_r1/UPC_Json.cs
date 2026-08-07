@@ -53,6 +53,11 @@ public class UPC_Json
         public bool OfflineMode { get; set; } = true;
     }
 
+    public class Coop
+    {
+        public bool? IsHost { get; set; }
+    }
+
     public class CDKey
     {
         public uint ProductId { get; set; }
@@ -98,6 +103,7 @@ public class UPC_Json
         public List<Achi> Achis { get; set; } = [];
         public List<Reward> Rewards { get; set; } = [];
         public string AvatarsPath { get; set; } = string.Empty;
+        public Coop Coop { get; set; } = new();
     }
 
 }

@@ -71,7 +71,12 @@ internal class User
     public static bool UPLAY_USER_GetConsumableItems(IntPtr aOutConsumableItemsList)
     {
         Log.Information(nameof(UPLAY_USER_GetConsumableItems), [aOutConsumableItemsList]);
-        return false;
+        if (aOutConsumableItemsList != IntPtr.Zero)
+        {
+            Marshal.WriteInt32(aOutConsumableItemsList, 0, 0);   // count = 0
+            Marshal.WriteInt64(aOutConsumableItemsList, 4, 0);   // items = NULL (packed at +4)
+        }
+        return true;
     }
 
     [UnmanagedCallersOnly(EntryPoint = "UPLAY_USER_GetCredentials", CallConvs = [typeof(CallConvCdecl)])]
@@ -205,6 +210,12 @@ internal class User
     {
         Log.Information(nameof(UPLAY_USER_SetGameSession), [GameSessionIdentifier, SessionData, Flags]);
         UPLAY_DataBlob blob = Marshal.PtrToStructure<UPLAY_DataBlob>(SessionData);
-        return false;
+        if (blob.data != IntPtr.Zero && blob.numBytes > 0 && blob.numBytes < (1 << 20))
+        {
+            byte[] bytes = new byte[blob.numBytes];
+            Marshal.Copy(blob.data, bytes, 0, (int)blob.numBytes);
+            upc_r1.CoopNet.PublishSession(GameSessionIdentifier, bytes);   // co-op: broadcast session over LAN
+        }
+        return true; 
     }
 }

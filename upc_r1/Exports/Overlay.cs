@@ -12,7 +12,8 @@ internal class Overlay
     [UnmanagedCallersOnly(EntryPoint = "UPLAY_OVERLAY_Show", CallConvs = [typeof(CallConvCdecl)])]
     public static bool UPLAY_OVERLAY_Show(int OverlaySection, IntPtr Overlapped)
     {
-        Log.Information("[{Function}] {Url} {Overlapped}", nameof(UPLAY_OVERLAY_SetShopUrl), OverlaySection, Overlapped);
+        Log.Information("[{Function}] {Url} {Overlapped}", nameof(UPLAY_OVERLAY_Show), OverlaySection, Overlapped);
+        upc_r1.CoopNet.MarkLocalAsHost();
         return false;
     }
 

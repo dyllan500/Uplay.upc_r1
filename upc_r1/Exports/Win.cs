@@ -48,6 +48,7 @@ internal class Win
     public static bool UPLAY_WIN_SetActionsCompleted(IntPtr aActionIdsUtf8, uint aActionIdsCount, IntPtr aOverlapped)
     {
         Log.Information(nameof(UPLAY_WIN_SetActionsCompleted), [aActionIdsUtf8, aActionIdsCount, aOverlapped]);
-        return false;
+        Basics.WriteOverlappedResult(aOverlapped, true, aOverlapped != IntPtr.Zero ? UPLAY_OverlappedResult.Ok : UPLAY_OverlappedResult.Failed);
+        return true;
     }
 }

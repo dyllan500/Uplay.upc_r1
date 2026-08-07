@@ -34,7 +34,32 @@ public class Friends
     public static bool UPLAY_FRIENDS_GetFriendList(uint FriendListFilter, IntPtr OutFriendList)
     {
         Log.Information("[{Function}] {FriendListFilter} {OutFriendList}", nameof(UPLAY_FRIENDS_GetFriendList), FriendListFilter, OutFriendList);
-        return false;
+        // Present each discovered LAN peer as an online, in-game friend so the co-op
+        // menu has someone to invite.
+        List<UPLAY_FRIEND_Friend> friends = [];
+        foreach (var acc in upc_r1.CoopNet.GetPeerAccounts())
+        {
+            IntPtr presPtr = Marshal.AllocHGlobal(Marshal.SizeOf<UPLAY_PRESENCE_Presence>());
+            Marshal.StructureToPtr(new UPLAY_PRESENCE_Presence
+            {
+                status = UPLAY_PRESENCE_Status.InGame,
+                richPresenceUtf8 = "",
+                state = 0,
+                GameSessionPtr = IntPtr.Zero
+            }, presPtr, false);
+            friends.Add(new UPLAY_FRIEND_Friend
+            {
+                accountIdUtf8 = acc,
+                nickUtf8 = "Player",
+                relationship = Uplay.Uplaydll.Relationship.Friend,
+                avatarId = 0,
+                PresencePtr = presPtr,
+                isBlacklisted = false
+            });
+        }
+        WriteOutList(OutFriendList, friends);
+        Log.Information("[{Function}] returned {N} friend(s)", nameof(UPLAY_FRIENDS_GetFriendList), friends.Count);
+        return true;
     }
 
     [UnmanagedCallersOnly(EntryPoint = "UPLAY_FRIENDS_Init", CallConvs = [typeof(CallConvCdecl)])]
@@ -61,8 +86,9 @@ public class Friends
     [UnmanagedCallersOnly(EntryPoint = "UPLAY_FRIENDS_IsFriend", CallConvs = [typeof(CallConvCdecl)])]
     public static bool UPLAY_FRIENDS_IsFriend(IntPtr AccountIdUtf8)
     {
-        Log.Information("[{Function}] {AccountIdUtf8}", nameof(UPLAY_FRIENDS_IsFriend), Marshal.PtrToStringAnsi(AccountIdUtf8));
-        return false;
+        string? acc = Marshal.PtrToStringAnsi(AccountIdUtf8);
+        Log.Information("[{Function}] {AccountIdUtf8}", nameof(UPLAY_FRIENDS_IsFriend), acc);
+        return acc != null && upc_r1.CoopNet.GetPeerAccounts().Contains(acc);
     }
 
     [UnmanagedCallersOnly(EntryPoint = "UPLAY_FRIENDS_RemoveFriendship", CallConvs = [typeof(CallConvCdecl)])]

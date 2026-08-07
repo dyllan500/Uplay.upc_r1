@@ -44,8 +44,7 @@ public static class Main
     public static bool UPLAY_GetNextEvent(IntPtr OutEvent)
     {
         Log.Verbose("[{Function}] {OutEvent}", nameof(UPLAY_GetNextEvent), OutEvent);
-        OutEvent = IntPtr.Zero;
-        return false;
+        return upc_r1.CoopNet.TryWriteNextEvent(OutEvent);   // co-op: deliver queued invite
     }
 
     [UnmanagedCallersOnly(EntryPoint = "UPLAY_Init", CallConvs = [typeof(CallConvCdecl)])]
@@ -63,10 +62,12 @@ public static class Main
             MainLogger.LevelSwitch.MinimumLevel = Serilog.Events.LogEventLevel.Verbose;
             MainLogger.FileLevelSwitch.MinimumLevel = Serilog.Events.LogEventLevel.Verbose;
         }
+        MainLogger.FileName = Path.Combine(AOTHelper.CurrentPath, "upc_r1.log");
         MainLogger.CreateNew();
         Log.Information("[{Function}] {UplayId} {Flags}", nameof(UPLAY_Start), UplayId, Flags);
 
         ProductId = UplayId;
+        upc_r1.CoopNet.Start(UPC_Json.Instance.Account.AccountId);   // co-op LAN broker
         LoadDll.PluginPath = "r1";
         LoadDll.LoadPlugins();
         return (int)UplayStartResult.Ok;
@@ -80,9 +81,11 @@ public static class Main
             MainLogger.LevelSwitch.MinimumLevel = Serilog.Events.LogEventLevel.Verbose;
             MainLogger.FileLevelSwitch.MinimumLevel = Serilog.Events.LogEventLevel.Verbose;
         }
+        MainLogger.FileName = Path.Combine(AOTHelper.CurrentPath, "upc_r1.log");
         MainLogger.CreateNew();
         Log.Verbose("[{Function}] {UplayId} {GameVersion} {LanguageCountryCodeUtf8}", nameof(UPLAY_Startup), UplayId, GameVersion, LanguageCountryCodeUtf8);
         ProductId = UplayId;
+        upc_r1.CoopNet.Start(UPC_Json.Instance.Account.AccountId);   // co-op LAN broker
         LoadDll.PluginPath = "r1";
         LoadDll.LoadPlugins();
         return (int)UplayStartResult.Ok;

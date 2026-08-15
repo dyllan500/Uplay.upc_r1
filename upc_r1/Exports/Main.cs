@@ -47,9 +47,41 @@ public static class Main
         return upc_r1.CoopNet.TryWriteNextEvent(OutEvent);   // co-op: deliver queued invite
     }
 
+    private static bool _initialised;
+
+    /// <summary>
+    /// Shared bring-up for every entry point a title might use to start the
+    /// SDK. Idempotent: whichever of Init/Start/Startup a title calls first
+    /// wins, and later calls only refresh the product id.
+    /// </summary>
+    private static void EnsureInitialised(string via, uint? uplayId)
+    {
+        if (uplayId is not null)
+            ProductId = uplayId.Value;
+
+        if (_initialised)
+            return;
+        _initialised = true;
+
+        if (UPC_Json.Instance.UseDebug)
+        {
+            MainLogger.LevelSwitch.MinimumLevel = Serilog.Events.LogEventLevel.Verbose;
+            MainLogger.FileLevelSwitch.MinimumLevel = Serilog.Events.LogEventLevel.Verbose;
+        }
+        MainLogger.FileName = Path.Combine(AOTHelper.CurrentPath, "upc_r1.log");
+        MainLogger.CreateNew();
+        Log.Information("[{Function}] emulator init (ProductId={ProductId})", via, ProductId);
+
+        upc_r1.CoopNet.Start(UPC_Json.Instance.Account.AccountId);   // co-op LAN broker
+        LoadDll.PluginPath = "r1";
+        LoadDll.LoadPlugins();
+    }
+
     [UnmanagedCallersOnly(EntryPoint = "UPLAY_Init", CallConvs = [typeof(CallConvCdecl)])]
     public static bool UPLAY_Init()
     {
+        uint.TryParse(UPC_Json.Instance.Others.ApplicationId, out uint appId);
+        EnsureInitialised(nameof(UPLAY_Init), appId != 0 ? appId : null);
         Log.Verbose("[{Function}]", nameof(UPLAY_Init));
         return true;
     }
@@ -57,37 +89,16 @@ public static class Main
     [UnmanagedCallersOnly(EntryPoint = "UPLAY_Start", CallConvs = [typeof(CallConvCdecl)])]
     public static int UPLAY_Start(uint UplayId, uint Flags)
     {
-        if (UPC_Json.Instance.UseDebug)
-        {
-            MainLogger.LevelSwitch.MinimumLevel = Serilog.Events.LogEventLevel.Verbose;
-            MainLogger.FileLevelSwitch.MinimumLevel = Serilog.Events.LogEventLevel.Verbose;
-        }
-        MainLogger.FileName = Path.Combine(AOTHelper.CurrentPath, "upc_r1.log");
-        MainLogger.CreateNew();
+        EnsureInitialised(nameof(UPLAY_Start), UplayId);
         Log.Information("[{Function}] {UplayId} {Flags}", nameof(UPLAY_Start), UplayId, Flags);
-
-        ProductId = UplayId;
-        upc_r1.CoopNet.Start(UPC_Json.Instance.Account.AccountId);   // co-op LAN broker
-        LoadDll.PluginPath = "r1";
-        LoadDll.LoadPlugins();
         return (int)UplayStartResult.Ok;
     }
 
     [UnmanagedCallersOnly(EntryPoint = "UPLAY_Startup", CallConvs = [typeof(CallConvCdecl)])]
     public static int UPLAY_Startup(uint UplayId, uint GameVersion, IntPtr LanguageCountryCodeUtf8)
     {
-        if (UPC_Json.Instance.UseDebug)
-        {
-            MainLogger.LevelSwitch.MinimumLevel = Serilog.Events.LogEventLevel.Verbose;
-            MainLogger.FileLevelSwitch.MinimumLevel = Serilog.Events.LogEventLevel.Verbose;
-        }
-        MainLogger.FileName = Path.Combine(AOTHelper.CurrentPath, "upc_r1.log");
-        MainLogger.CreateNew();
+        EnsureInitialised(nameof(UPLAY_Startup), UplayId);
         Log.Verbose("[{Function}] {UplayId} {GameVersion} {LanguageCountryCodeUtf8}", nameof(UPLAY_Startup), UplayId, GameVersion, LanguageCountryCodeUtf8);
-        ProductId = UplayId;
-        upc_r1.CoopNet.Start(UPC_Json.Instance.Account.AccountId);   // co-op LAN broker
-        LoadDll.PluginPath = "r1";
-        LoadDll.LoadPlugins();
         return (int)UplayStartResult.Ok;
     }
 

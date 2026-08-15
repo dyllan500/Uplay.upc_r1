@@ -83,6 +83,8 @@ internal class User
     public static bool UPLAY_USER_GetCredentials(IntPtr aOutUserCredentials, IntPtr aOverlapped)
     {
         Log.Information(nameof(UPLAY_USER_GetCredentials), [aOutUserCredentials, aOverlapped]);
+        if (aOverlapped != IntPtr.Zero)
+            Basics.WriteOverlappedResult(aOverlapped, true, UPLAY_OverlappedResult.Failed);
         return false;
     }
 

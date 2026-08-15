@@ -24,7 +24,12 @@ internal class Party
     public static bool UPLAY_PARTY_GetFullMemberList(IntPtr OutMemberList)
     {
         Log.Information("[{Function}] {OutMemberList}", nameof(UPLAY_PARTY_GetFullMemberList), OutMemberList);
-        return false;
+        if (OutMemberList != IntPtr.Zero)
+        {
+            Marshal.WriteInt32(OutMemberList, 0, 0);
+            Marshal.WriteIntPtr(OutMemberList, 4, IntPtr.Zero);
+        }
+        return true;
     }
 
     [UnmanagedCallersOnly(EntryPoint = "UPLAY_PARTY_GetId", CallConvs = [typeof(CallConvCdecl)])]
@@ -38,8 +43,15 @@ internal class Party
     public static bool UPLAY_PARTY_GetInGameMemberList(IntPtr OutMemberList)
     {
         Log.Information("[{Function}] {OutMemberList}", nameof(UPLAY_PARTY_GetInGameMemberList), OutMemberList);
-        // Deprecated.
-        return false;
+        // Deprecated, but write an empty list anyway: same out-param shape as
+        // GetFullMemberList above, and leaving it untouched is what crashed FC3.
+        // A caller that ignores the return value can only be helped by this.
+        if (OutMemberList != IntPtr.Zero)
+        {
+            Marshal.WriteInt32(OutMemberList, 0, 0);              // count = 0
+            Marshal.WriteIntPtr(OutMemberList, 4, IntPtr.Zero);   // items = NULL
+        }
+        return true;
     }
 
     [UnmanagedCallersOnly(EntryPoint = "UPLAY_PARTY_Init", CallConvs = [typeof(CallConvCdecl)])]

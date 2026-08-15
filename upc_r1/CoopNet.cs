@@ -124,8 +124,8 @@ public static class CoopNet
 
         if (ev.Type != InviteAccepted)
         {
-            Marshal.WriteInt32(outEvent, 0x00, (int)ev.Type);
-            Marshal.WriteIntPtr(outEvent, 0x08, IntPtr.Zero);
+            Marshal.StructureToPtr(
+                new UPLAY_Event { type = ev.Type, @event = IntPtr.Zero }, outEvent, false);
             Serilog.Log.Information("[CoopNet] delivered {Type}({Val})", ev.Type, (int)ev.Type);
             return true;
         }
@@ -133,18 +133,22 @@ public static class CoopNet
         IntPtr blobPtr = Marshal.AllocHGlobal(ev.Blob.Length);
         Marshal.Copy(ev.Blob, 0, blobPtr, ev.Blob.Length);
 
-        IntPtr gsPtr = Marshal.AllocHGlobal(24);            // UPLAY_USER_GameSession
-        Marshal.WriteInt64(gsPtr, 0x00, (long)ev.Id);       // id
-        Marshal.WriteIntPtr(gsPtr, 0x08, blobPtr);          // Data.data
-        Marshal.WriteInt32(gsPtr, 0x10, ev.Blob.Length);    // Data.numBytes
+        IntPtr gsPtr = Marshal.AllocHGlobal(Marshal.SizeOf<UPLAY_USER_GameSession>());
+        Marshal.StructureToPtr(new UPLAY_USER_GameSession
+        {
+            id = ev.Id,
+            Data = new UPLAY_DataBlob { data = blobPtr, numBytes = (uint)ev.Blob.Length },
+        }, gsPtr, false);
 
-        IntPtr acctPtr = Marshal.StringToHGlobalAnsi(ev.From);
-        IntPtr giaPtr = Marshal.AllocHGlobal(16);           // UPLAY_FRIENDS_GameInviteAccepted
-        Marshal.WriteIntPtr(giaPtr, 0x00, gsPtr);           // gameSessionPtr
-        Marshal.WriteIntPtr(giaPtr, 0x08, acctPtr);         // accountIdUtf8
+        IntPtr giaPtr = Marshal.AllocHGlobal(Marshal.SizeOf<UPLAY_FRIENDS_GameInviteAccepted>());
+        Marshal.StructureToPtr(new UPLAY_FRIENDS_GameInviteAccepted
+        {
+            gameSessionPtr = gsPtr,
+            accountIdUtf8 = ev.From,
+        }, giaPtr, false);
 
-        Marshal.WriteInt32(outEvent, 0x00, (int)InviteAccepted); // type = 10002
-        Marshal.WriteIntPtr(outEvent, 0x08, giaPtr);             // event ptr
+        Marshal.StructureToPtr(
+            new UPLAY_Event { type = InviteAccepted, @event = giaPtr }, outEvent, false);
 
         Serilog.Log.Information("[CoopNet] delivered FriendsGameInviteAccepted(10002) id=0x{Id:x} from {From}", ev.Id, ev.From);
         return true;

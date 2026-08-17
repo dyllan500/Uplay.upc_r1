@@ -83,9 +83,55 @@ internal class User
     public static bool UPLAY_USER_GetCredentials(IntPtr aOutUserCredentials, IntPtr aOverlapped)
     {
         Log.Information(nameof(UPLAY_USER_GetCredentials), [aOutUserCredentials, aOverlapped]);
-        if (aOverlapped != IntPtr.Zero)
-            Basics.WriteOverlappedResult(aOverlapped, true, UPLAY_OverlappedResult.Failed);
+
+        if (!TryLoadCredentialAccount(out var account))
+        {
+            CompleteCredentialRequest(aOverlapped, UPLAY_OverlappedResult.Failed);
+            return false;
+        }
+
+        Log.Information("[{Function}] validated local account {AccountId} ({Name}); native layout is unconfirmed",
+            nameof(UPLAY_USER_GetCredentials), account.AccountId, account.Name);
+
+        CompleteCredentialRequest(aOverlapped, UPLAY_OverlappedResult.Failed);
         return false;
+    }
+
+    private static bool TryLoadCredentialAccount(out UPC_Json.Account account)
+    {
+        account = null!;
+
+        try
+        {
+            var candidate = UPC_Json.Instance.Account;
+            if (candidate is null ||
+                string.IsNullOrWhiteSpace(candidate.AccountId) ||
+                candidate.AccountId.Contains('\0') ||
+                string.IsNullOrWhiteSpace(candidate.Name) ||
+                candidate.Name.Contains('\0') ||
+                string.IsNullOrEmpty(candidate.Password) ||
+                candidate.Password.Contains('\0'))
+            {
+                Log.Warning("[{Function}] local account is missing a required non-secret field",
+                    nameof(UPLAY_USER_GetCredentials));
+                return false;
+            }
+
+            account = candidate;
+            return true;
+        }
+        catch (Exception exception)
+        {
+            Log.Warning("[{Function}] local account could not be loaded ({ExceptionType})",
+                nameof(UPLAY_USER_GetCredentials), exception.GetType().Name);
+            return false;
+        }
+    }
+
+    private static void CompleteCredentialRequest(IntPtr aOverlapped, UPLAY_OverlappedResult result)
+    {
+        if (aOverlapped != IntPtr.Zero)
+            Basics.WriteOverlappedResult(aOverlapped, true, result);
     }
 
     [UnmanagedCallersOnly(EntryPoint = "UPLAY_USER_GetEmail", CallConvs = [typeof(CallConvCdecl)])]

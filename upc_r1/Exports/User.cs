@@ -1,9 +1,12 @@
 ﻿using System.Collections.Generic;
+using System.Text;
 
 namespace upc_r1.Exports;
 
 internal class User
 {
+    private const int CredentialBufferBytes = 0x100;
+
     [UnmanagedCallersOnly(EntryPoint = "UPLAY_USER_ClearGameSession", CallConvs = [typeof(CallConvCdecl)])]
     public static bool UPLAY_USER_ClearGameSession()
     {
@@ -90,11 +93,32 @@ internal class User
             return false;
         }
 
-        Log.Information("[{Function}] validated local account {AccountId} ({Name}); native layout is unconfirmed",
+        if (aOutUserCredentials == IntPtr.Zero)
+        {
+            Log.Warning("[{Function}] credential output buffer is null",
+                nameof(UPLAY_USER_GetCredentials));
+            CompleteCredentialRequest(aOverlapped, UPLAY_OverlappedResult.Failed);
+            return false;
+        }
+
+        byte[] username = Encoding.UTF8.GetBytes(account.Name);
+        if (username.Length >= CredentialBufferBytes)
+        {
+            Log.Warning("[{Function}] account name does not fit the credential buffer",
+                nameof(UPLAY_USER_GetCredentials));
+            CompleteCredentialRequest(aOverlapped, UPLAY_OverlappedResult.Failed);
+            return false;
+        }
+
+        Marshal.Copy(new byte[CredentialBufferBytes], 0,
+            aOutUserCredentials, CredentialBufferBytes);
+        Marshal.Copy(username, 0, aOutUserCredentials, username.Length);
+
+        Log.Information("[{Function}] populated local account {AccountId} ({Name})",
             nameof(UPLAY_USER_GetCredentials), account.AccountId, account.Name);
 
-        CompleteCredentialRequest(aOverlapped, UPLAY_OverlappedResult.Failed);
-        return false;
+        CompleteCredentialRequest(aOverlapped, UPLAY_OverlappedResult.Ok);
+        return true;
     }
 
     private static bool TryLoadCredentialAccount(out UPC_Json.Account account)

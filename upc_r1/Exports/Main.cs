@@ -21,6 +21,8 @@ public static class Main
         if (Overlapped == IntPtr.Zero)
             return false;
         var lapped = Marshal.PtrToStructure<UPLAY_Overlapped>(Overlapped);
+        Log.Verbose("[{Function}] overlapped={Overlapped} completed={Completed}",
+            nameof(UPLAY_HasOverlappedOperationCompleted), Overlapped, lapped.Completed);
         return lapped.Completed;
     }
 
@@ -29,6 +31,8 @@ public static class Main
     {
         var lapped = Marshal.PtrToStructure<UPLAY_Overlapped>(Overlapped);
         Marshal.WriteInt32(OutResult, (int)lapped.Result);
+        Log.Information("[{Function}] overlapped={Overlapped} result={Result} out={OutResult}",
+            nameof(UPLAY_GetOverlappedOperationResult), Overlapped, lapped.Result, OutResult);
         return true;
     }
 

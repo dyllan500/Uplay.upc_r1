@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Text;
 
 namespace upc_r1;
 
@@ -55,19 +56,18 @@ internal sealed class CredentialOperation
     {
         try
         {
-            // This probe deliberately writes no credential fields.  It exists only
-            // for debugger-assisted consumer tracing; the default remains failure
-            // until the native output layout is confirmed.
-            var probeOk = string.Equals(
-                Environment.GetEnvironmentVariable("UPC_R1_CREDENTIAL_PROBE_OK"),
-                "1", StringComparison.Ordinal);
+            if (_output == IntPtr.Zero)
+                throw new InvalidOperationException("credential output buffer is null");
 
-            Log.Information("[{Function}] callback completing {Result}; output layout is unconfirmed for {AccountId} ({Name})",
+            var username = Encoding.UTF8.GetBytes(_name);
+            Marshal.Copy(username, 0, _output, username.Length);
+            Marshal.WriteByte(_output, username.Length, 0);
+
+            Log.Information("[{Function}] callback completing Ok with confirmed username buffer for {AccountId} ({Name})",
                 "UPLAY_USER_GetCredentials",
-                probeOk ? "Ok (probe, no output write)" : "Failed",
                 _accountId,
                 _name);
-            CompleteOnce(probeOk ? UPLAY_OverlappedResult.Ok : UPLAY_OverlappedResult.Failed);
+            CompleteOnce(UPLAY_OverlappedResult.Ok);
         }
         catch (Exception exception)
         {

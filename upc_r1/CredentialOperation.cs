@@ -55,9 +55,19 @@ internal sealed class CredentialOperation
     {
         try
         {
-            Log.Information("[{Function}] callback completing failed; output layout is unconfirmed for {AccountId} ({Name})",
-                "UPLAY_USER_GetCredentials", _accountId, _name);
-            CompleteOnce(UPLAY_OverlappedResult.Failed);
+            // This probe deliberately writes no credential fields.  It exists only
+            // for debugger-assisted consumer tracing; the default remains failure
+            // until the native output layout is confirmed.
+            var probeOk = string.Equals(
+                Environment.GetEnvironmentVariable("UPC_R1_CREDENTIAL_PROBE_OK"),
+                "1", StringComparison.Ordinal);
+
+            Log.Information("[{Function}] callback completing {Result}; output layout is unconfirmed for {AccountId} ({Name})",
+                "UPLAY_USER_GetCredentials",
+                probeOk ? "Ok (probe, no output write)" : "Failed",
+                _accountId,
+                _name);
+            CompleteOnce(probeOk ? UPLAY_OverlappedResult.Ok : UPLAY_OverlappedResult.Failed);
         }
         catch (Exception exception)
         {

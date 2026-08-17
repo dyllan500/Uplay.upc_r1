@@ -76,6 +76,14 @@ public static class Main
         MainLogger.CreateNew();
         Log.Information("[{Function}] emulator init (ProductId={ProductId})", via, ProductId);
 
+        if (int.TryParse(Environment.GetEnvironmentVariable("UPC_R1_STARTUP_DELAY_MS"), out var delayMs) &&
+            delayMs > 0)
+        {
+            delayMs = Math.Min(delayMs, 120_000);
+            Log.Information("[{Function}] startup debugger delay active for {DelayMs} ms", via, delayMs);
+            Thread.Sleep(delayMs);
+        }
+
         upc_r1.CoopNet.Start(UPC_Json.Instance.Account.AccountId);   // co-op LAN broker
         LoadDll.PluginPath = "r1";
         LoadDll.LoadPlugins();

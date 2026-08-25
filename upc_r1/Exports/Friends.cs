@@ -30,12 +30,21 @@ public class Friends
         return false;
     }
 
+    /// <summary>
+    /// Backing memory for the friend list handed to the game. The caller keeps
+    /// the pointers until it asks again, so the previous call's block is only
+    /// released when a new one replaces it.
+    /// </summary>
+    private static IntPtr _friendArray = IntPtr.Zero;
+    private static IntPtr[] _friendEntries = [];
+
     [UnmanagedCallersOnly(EntryPoint = "UPLAY_FRIENDS_GetFriendList", CallConvs = [typeof(CallConvCdecl)])]
     public static bool UPLAY_FRIENDS_GetFriendList(uint FriendListFilter, IntPtr OutFriendList)
     {
         Log.Information("[{Function}] {FriendListFilter} {OutFriendList}", nameof(UPLAY_FRIENDS_GetFriendList), FriendListFilter, OutFriendList);
-        // Present each discovered LAN peer as an online, in-game friend so the co-op
-        // menu has someone to invite.
+        if (OutFriendList == IntPtr.Zero)
+            return true;
+
         List<UPLAY_FRIEND_Friend> friends = [];
         foreach (var acc in upc_r1.CoopNet.GetPeerAccounts())
         {
@@ -57,9 +66,40 @@ public class Friends
                 isBlacklisted = false
             });
         }
-        WriteOutList(OutFriendList, friends);
-        Log.Information("[{Function}] returned {N} friend(s)", nameof(UPLAY_FRIENDS_GetFriendList), friends.Count);
+        ReleaseFriendList();
+        if (friends.Count > 0)
+        {
+            int stride = Marshal.SizeOf<UPLAY_FRIEND_Friend>();
+            _friendEntries = new IntPtr[friends.Count];
+            for (int i = 0; i < friends.Count; i++)
+            {
+                _friendEntries[i] = Marshal.AllocHGlobal(stride);
+                Marshal.StructureToPtr(friends[i], _friendEntries[i], false);
+            }
+            _friendArray = Marshal.AllocHGlobal(IntPtr.Size * friends.Count);
+            for (int i = 0; i < friends.Count; i++)
+                Marshal.WriteIntPtr(_friendArray, i * IntPtr.Size, _friendEntries[i]);
+        }
+
+        Marshal.WriteInt32(OutFriendList, 0, friends.Count);
+        Marshal.WriteIntPtr(OutFriendList, 4, _friendArray);
+        Log.Information("[{Function}] returned {N} friend(s) (count@+0, array@+4={Array})",
+            nameof(UPLAY_FRIENDS_GetFriendList), friends.Count, _friendArray);
         return true;
+    }
+
+    /// <summary>Frees the block handed out by the previous GetFriendList call.</summary>
+    private static void ReleaseFriendList()
+    {
+        foreach (IntPtr entry in _friendEntries)
+            if (entry != IntPtr.Zero)
+                Marshal.FreeHGlobal(entry);
+        _friendEntries = [];
+        if (_friendArray != IntPtr.Zero)
+        {
+            Marshal.FreeHGlobal(_friendArray);
+            _friendArray = IntPtr.Zero;
+        }
     }
 
     [UnmanagedCallersOnly(EntryPoint = "UPLAY_FRIENDS_Init", CallConvs = [typeof(CallConvCdecl)])]

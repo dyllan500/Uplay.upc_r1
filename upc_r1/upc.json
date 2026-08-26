@@ -16,6 +16,9 @@
     "ApplicationId": "ea66fece-ccce-4fe4-ad60-45298a0ac92a",
     "OfflineMode": true
   },
+  "Coop": {
+    "Enabled": false
+  },
   "CDKey": [
     {
       "ProductId": 0,

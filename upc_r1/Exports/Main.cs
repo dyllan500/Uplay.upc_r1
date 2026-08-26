@@ -84,7 +84,14 @@ public static class Main
             Thread.Sleep(delayMs);
         }
 
-        upc_r1.CoopNet.Start(UPC_Json.Instance.Account.AccountId);   // co-op LAN broker
+        if (UPC_Json.Instance.Coop.Enabled)
+        {
+            upc_r1.CoopNet.Start(UPC_Json.Instance.Account.AccountId);
+        }
+        else
+        {
+            Log.Information("[CoopNet] disabled by upc.json");
+        }
         LoadDll.PluginPath = "r1";
         LoadDll.LoadPlugins();
     }

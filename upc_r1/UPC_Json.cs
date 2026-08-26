@@ -54,7 +54,8 @@ public class UPC_Json
     }
 
     public class Coop
-    {
+    { 
+        public bool Enabled { get; set; } = false;
         public bool? IsHost { get; set; }
     }
 

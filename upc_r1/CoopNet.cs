@@ -20,6 +20,7 @@ public static class CoopNet
     private static readonly UPLAY_EventType InviteAccepted = UPLAY_EventType.UPLAY_Event_FriendsGameInviteAccepted;
     private static readonly ConcurrentDictionary<string, IPEndPoint> _peers = new();
     private static readonly ConcurrentQueue<Pending> _events = new();
+    private static int _initialFriendsEventQueued;
     private static readonly ConcurrentDictionary<ulong, byte> _invitedSessions = new();
     private static readonly ConcurrentDictionary<ulong, byte> _publishedSessions = new();
     private static volatile byte[]? _lastSessionPkt;
@@ -44,6 +45,15 @@ public static class CoopNet
 
     private static void EnqueueSimpleEvent(UPLAY_EventType type) =>
         _events.Enqueue(new Pending { Type = type });
+
+    public static void QueueInitialFriendsListUpdated()
+    {
+        if (Interlocked.Exchange(ref _initialFriendsEventQueued, 1) != 0)
+            return;
+
+        EnqueueSimpleEvent(UPLAY_EventType.UPLAY_Event_FriendsFriendListUpdated);
+        Serilog.Log.Information("[Uplay] queued initial FriendsFriendListUpdated event");
+    }
 
     public static bool Started { get; private set; }
 
@@ -79,7 +89,7 @@ public static class CoopNet
             new Thread(AnnounceLoop) { IsBackground = true, Name = "CoopNet.Announce" }.Start();
             Serilog.Log.Information("[CoopNet] started on :{Port} as account {Acct}", BrokerPort, _myAccount);
 
-            EnqueueSimpleEvent(UPLAY_EventType.UPLAY_Event_FriendsFriendListUpdated);
+            QueueInitialFriendsListUpdated();
             EnqueueSimpleEvent(UPLAY_EventType.UPLAY_Event_PartyMemberListChanged);
         }
         catch (Exception e)

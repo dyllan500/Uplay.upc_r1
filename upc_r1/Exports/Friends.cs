@@ -106,6 +106,7 @@ public class Friends
     public static bool UPLAY_FRIENDS_Init(uint Flags)
     {
         Log.Information("[{Function}] {Flags}", nameof(UPLAY_FRIENDS_Init), Flags);
+        upc_r1.CoopNet.QueueInitialFriendsListUpdated();
         return true;
     }
 

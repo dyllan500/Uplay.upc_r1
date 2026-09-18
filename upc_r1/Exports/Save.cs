@@ -135,7 +135,7 @@ internal class Save
             saves.Add(new()
             {
                 nameUtf8 = saveName,
-                id = fileId,
+                id = (uint)fileId,
                 size = (ulong)(info.Length - 552)
             });
         }

@@ -46,8 +46,8 @@ public struct UPLAY_Event
 [StructLayout(LayoutKind.Sequential, Pack = 8)]
 public struct UPLAY_SAVE_Game
 {
-    [MarshalAs(UnmanagedType.U8)]
-    public ulong id;
+    [MarshalAs(UnmanagedType.U4)]
+    public uint id;
     [MarshalAs(UnmanagedType.LPStr)]
     public string nameUtf8;
     [MarshalAs(UnmanagedType.U8)]

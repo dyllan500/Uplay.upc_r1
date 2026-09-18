@@ -4,6 +4,22 @@ namespace upc_r1.Exports;
 
 internal class User
 {
+    private const int LegacyOutBufferCapacity = 0x40;
+
+    private static bool WriteLegacyString(IntPtr aOut, string value, string caller)
+    {
+        if (aOut == IntPtr.Zero)
+        {
+            Log.Warning("{Caller}: null out buffer", caller);
+            return false;
+        }
+        var bytes = System.Text.Encoding.ASCII.GetBytes(value ?? string.Empty);
+        var length = Math.Min(bytes.Length, LegacyOutBufferCapacity - 1);
+        Marshal.Copy(bytes, 0, aOut, length);
+        Marshal.WriteByte(aOut, length, 0);
+        return true;
+    }
+
     [UnmanagedCallersOnly(EntryPoint = "UPLAY_USER_ClearGameSession", CallConvs = [typeof(CallConvCdecl)])]
     public static bool UPLAY_USER_ClearGameSession()
     {
@@ -19,10 +35,10 @@ internal class User
     }
 
     [UnmanagedCallersOnly(EntryPoint = "UPLAY_USER_GetAccountId", CallConvs = [typeof(CallConvCdecl)])]
-    public static IntPtr UPLAY_USER_GetAccountId(IntPtr aOutAccountId)
+    public static bool UPLAY_USER_GetAccountId(IntPtr aOutAccountId)
     {
         Log.Information(nameof(UPLAY_USER_GetAccountId), [aOutAccountId]);
-        return 0;
+        return WriteLegacyString(aOutAccountId, UPC_Json.Instance.Account.AccountId, nameof(UPLAY_USER_GetAccountId));
     }
 
     [UnmanagedCallersOnly(EntryPoint = "UPLAY_USER_GetAccountIdUtf8", CallConvs = [typeof(CallConvCdecl)])]
@@ -148,10 +164,10 @@ internal class User
     }
 
     [UnmanagedCallersOnly(EntryPoint = "UPLAY_USER_GetEmail", CallConvs = [typeof(CallConvCdecl)])]
-    public static IntPtr UPLAY_USER_GetEmail(IntPtr aOutEmail)
+    public static bool UPLAY_USER_GetEmail(IntPtr aOutEmail)
     {
         Log.Information(nameof(UPLAY_USER_GetEmail), [aOutEmail]);
-        return 0;
+        return WriteLegacyString(aOutEmail, UPC_Json.Instance.Account.Email, nameof(UPLAY_USER_GetEmail));
     }
 
     [UnmanagedCallersOnly(EntryPoint = "UPLAY_USER_GetEmailUtf8", CallConvs = [typeof(CallConvCdecl)])]
@@ -183,10 +199,10 @@ internal class User
     }
 
     [UnmanagedCallersOnly(EntryPoint = "UPLAY_USER_GetPassword", CallConvs = [typeof(CallConvCdecl)])]
-    public static IntPtr UPLAY_USER_GetPassword(IntPtr aOutPassword)
+    public static bool UPLAY_USER_GetPassword(IntPtr aOutPassword)
     {
         Log.Information(nameof(UPLAY_USER_GetPassword), [aOutPassword]);
-        return 0;
+        return WriteLegacyString(aOutPassword, UPC_Json.Instance.Account.Password, nameof(UPLAY_USER_GetPassword));
     }
 
     [UnmanagedCallersOnly(EntryPoint = "UPLAY_USER_GetPasswordUtf8", CallConvs = [typeof(CallConvCdecl)])]
@@ -211,10 +227,10 @@ internal class User
     }
 
     [UnmanagedCallersOnly(EntryPoint = "UPLAY_USER_GetUsername", CallConvs = [typeof(CallConvCdecl)])]
-    public static IntPtr UPLAY_USER_GetUsername(IntPtr aOutUsername)
+    public static bool UPLAY_USER_GetUsername(IntPtr aOutUsername)
     {
         Log.Information(nameof(UPLAY_USER_GetUsername), [aOutUsername]);
-        return 0;
+        return WriteLegacyString(aOutUsername, UPC_Json.Instance.Account.Name, nameof(UPLAY_USER_GetUsername));
     }
 
     [UnmanagedCallersOnly(EntryPoint = "UPLAY_USER_GetUsernameUtf8", CallConvs = [typeof(CallConvCdecl)])]

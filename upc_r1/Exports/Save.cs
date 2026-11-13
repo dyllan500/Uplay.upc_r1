@@ -5,7 +5,7 @@ namespace upc_r1.Exports;
 internal class SaveSlot
 {
     public uint Mode { get; set; }          // +0: 0=read, 1=write
-    public uint SlotId { get; set; }        // +4: slot identifier  
+    public uint SlotId { get; set; }        // +4: slot identifier
     public ulong HeaderSize { get; set; }   // +8: 552 bytes
     public FileStream? FileHandle { get; set; } // +16: file stream
     public string? SaveName { get; set; }   // +24: save name for header
@@ -19,6 +19,14 @@ internal class SaveSlot
 internal class Save
 {
     static readonly SaveSlot?[] SaveSlots = new SaveSlot[256];
+
+    static string ResolveSaveBasePath()
+    {
+        string baseSavePath = UPC_Json.Instance.Save.Path;
+        if (string.IsNullOrEmpty(baseSavePath))
+            return AOTHelper.CurrentPath;
+        return Environment.ExpandEnvironmentVariables(baseSavePath);
+    }
 
     [UnmanagedCallersOnly(EntryPoint = "UPLAY_SAVE_Close", CallConvs = [typeof(CallConvCdecl)])]
     public static bool UPLAY_SAVE_Close(IntPtr SlotId)
@@ -37,9 +45,7 @@ internal class Save
             slot.SaveName ??= "Unnamed";
 
             // Build file path
-            string baseSavePath = UPC_Json.Instance.Save.Path;
-            if (string.IsNullOrEmpty(baseSavePath))
-                baseSavePath = AOTHelper.CurrentPath;
+            string baseSavePath = ResolveSaveBasePath();
             string savePath = UPC_Json.Instance.Save.UseAppIdInName
                 ? Path.Combine(baseSavePath, Main.ProductId.ToString(), $"{SlotId}.save")
                 : Path.Combine(baseSavePath, $"{SlotId}.save");
@@ -69,7 +75,7 @@ internal class Save
                 Log.Verbose("[{Function}] Header write failed: {Message}", nameof(UPLAY_SAVE_Close),ex.Message);
             }
         }
-        
+
         // Close file handle if it exists
         slot.FileHandle?.Dispose();
 
@@ -84,9 +90,7 @@ internal class Save
         Log.Verbose("[{Function}] {OutGamesList} {Overlapped}", nameof(UPLAY_SAVE_GetSavegames), OutGamesList, Overlapped);
         if (OutGamesList == IntPtr.Zero)
             return false;
-        string baseSavePath = UPC_Json.Instance.Save.Path;
-        if (string.IsNullOrEmpty(baseSavePath))
-            baseSavePath = AOTHelper.CurrentPath;
+        string baseSavePath = ResolveSaveBasePath();
         string savePath = UPC_Json.Instance.Save.UseAppIdInName
             ? Path.Combine(baseSavePath, Main.ProductId.ToString())
             : baseSavePath;
@@ -155,16 +159,14 @@ internal class Save
         }
 
         SaveSlots[SlotId] = new()
-        { 
+        {
             Mode = Mode,
             SlotId = SlotId,
             HeaderSize = 552,
             FileHandle = null,
             SaveName = null
         };
-        string baseSavePath = UPC_Json.Instance.Save.Path;
-        if (string.IsNullOrEmpty(baseSavePath))
-            baseSavePath = AOTHelper.CurrentPath;
+        string baseSavePath = ResolveSaveBasePath();
         string savePath = UPC_Json.Instance.Save.UseAppIdInName
             ? Path.Combine(baseSavePath, Main.ProductId.ToString(), $"{SlotId}.save")
             : Path.Combine(baseSavePath, $"{SlotId}.save");
@@ -234,9 +236,7 @@ internal class Save
             Marshal.WriteInt32(OutNumOfBytesRead, 0);
             Basics.WriteOverlappedResult(Overlapped, true, UPLAY_OverlappedResult.Ok);
         }
-        string baseSavePath = UPC_Json.Instance.Save.Path;
-        if (string.IsNullOrEmpty(baseSavePath))
-            baseSavePath = AOTHelper.CurrentPath;
+        string baseSavePath = ResolveSaveBasePath();
 
         string savePath = UPC_Json.Instance.Save.UseAppIdInName
             ? Path.Combine(baseSavePath, Main.ProductId.ToString(), $"{SlotId}.save")
@@ -285,9 +285,7 @@ internal class Save
     public static bool UPLAY_SAVE_Remove(uint SlotId, IntPtr Overlapped)
     {
         Log.Verbose("[{Function}] {SlotId} {Overlapped}", nameof(UPLAY_SAVE_Remove), SlotId, Overlapped);
-        string baseSavePath = UPC_Json.Instance.Save.Path;
-        if (string.IsNullOrEmpty(baseSavePath))
-            baseSavePath = AOTHelper.CurrentPath;
+        string baseSavePath = ResolveSaveBasePath();
 
         string savePath = UPC_Json.Instance.Save.UseAppIdInName
             ? Path.Combine(baseSavePath, Main.ProductId.ToString(), $"{SlotId}.save")
@@ -334,9 +332,7 @@ internal class Save
             return false;
         }
         // Build file path
-        string baseSavePath = UPC_Json.Instance.Save.Path;
-        if (string.IsNullOrEmpty(baseSavePath))
-            baseSavePath = AOTHelper.CurrentPath;
+        string baseSavePath = ResolveSaveBasePath();
 
         string savePath = UPC_Json.Instance.Save.UseAppIdInName
             ? Path.Combine(baseSavePath, Main.ProductId.ToString(), $"{SlotId}.save")
